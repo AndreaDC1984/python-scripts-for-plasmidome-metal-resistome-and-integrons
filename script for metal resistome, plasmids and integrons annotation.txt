@@ -1,0 +1,267 @@
+Python script used for the normalization and pivot creation of metal resistance annotations.
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 27 23:21:49 2020
+
+@author: Pu Li
+"""
+
+import pandas as pd
+import os  
+
+
+def file_name(file_dir):   
+    aL=[]   
+    for root, dirs, files in os.walk(file_dir): 
+        for file in files:  
+            if os.path.splitext(file)[1] == '.m8':
+                fn = os.path.splitext(file)[0]
+                fname = fn.split('_')
+                aL.append(fname)  
+    return aL  
+
+def databaseRearange(database):
+    aL = []
+    for i in range(len(database)):
+        if '>' in database[i]:
+           aL.append(i)
+    
+    aLL = []       
+    for j in range(len(aL)):
+        if j >= len(aL)-1:
+            sD = database[aL[j]+1:]
+        else:
+            sD = database[aL[j]+1:aL[j+1]]
+        n = 0
+        for k in sD:
+            n = n + len(k) - 1
+        dis = database[aL[j]]
+        gLen = n
+        aLL.append([dis,gLen])
+        
+    return aLL
+
+filepath = 'Unique/MRG/'
+fileNames = file_name(filepath)
+
+sampleNames = [fileNames[i][0] for i in range(len(fileNames))]
+extends = [fileNames[i][1] for i in range(len(fileNames))]
+
+idendityTH = 90
+hitLengthTH = 38
+readLength = 150
+
+f=open('reference_database/BacMet2_EXP_database.fasta')
+database = f.readlines()
+f.close()
+
+genTable = databaseRearange(database) 
+
+cellNumRaw = pd.read_csv('cell_number.txt',sep='\t',engine='python',
+                           header=0, encoding='utf-8')
+
+for f in fileNames:
+    file = f[0]
+    extend = f[1]
+    cellData = cellNumRaw[cellNumRaw['Name']==file]
+    cellNum = float(cellData['CellNumber'])
+
+    file1 = filepath+file+'_'+extend+'.m8'    
+    rawData = pd.read_csv(file1,sep='\t',engine='python',
+                           header=None, encoding='utf-8')
+
+    refData = rawData[rawData[2]>=idendityTH]
+    refData = refData[refData[3]>= hitLengthTH]
+
+    value_c = refData[1].value_counts()
+
+    columnN=['gene name','relative abundance','gene description']
+    finalTable = pd.DataFrame(columns = columnN)
+
+    for i in value_c.index:
+        for j in range(len(genTable)):
+            if i in genTable[j][0]:
+                Rabdc = value_c.loc[i]*readLength/genTable[j][1]/cellNum
+                idx = j
+        finalTable = finalTable.append(pd.DataFrame(columns = columnN,
+                                                    data = [[i,Rabdc,genTable[idx][0]]]))
+
+    finalTable.to_csv('Unique/results/MRG/'+file+'.csv',index = None)
+
+
+Python script used for the normalization and pivot creation of plasmids annotations.
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 27 23:21:49 2020
+
+@author: Pu Li
+"""
+
+import pandas as pd
+import os  
+
+
+def file_name(file_dir):   
+    aL=[]   
+    for root, dirs, files in os.walk(file_dir): 
+        for file in files:  
+            if os.path.splitext(file)[1] == '.m8':
+                fn = os.path.splitext(file)[0]
+                aL.append(fn)  
+    return aL  
+
+def databaseRearange(database):
+    aL = []
+    for i in range(len(database)):
+        if '>' in database[i]:
+           aL.append(i)
+    
+    aLL = []       
+    for j in range(len(aL)):
+        if j >= len(aL)-1:
+            sD = database[aL[j]+1:]
+        else:
+            sD = database[aL[j]+1:aL[j+1]]
+        n = 0
+        for k in sD:
+            n = n + len(k) - 1
+        dis = database[aL[j]]
+        gLen = n
+        aLL.append([dis,gLen])
+        
+    return aLL
+
+filepath = 'Unique/Plasmids/'
+fileNames = file_name(filepath)
+uFN = list(set(fileNames))
+
+idendityTH = 95
+
+hitLengthTH = 90
+
+readLength = 150
+
+f=open('reference_database/Plasmid.fna')
+database = f.readlines()
+f.close()
+
+genTable = databaseRearange(database) 
+
+cellNumRaw = pd.read_csv('cell_number.txt',sep='\t',engine='python',
+                           header=0, encoding='utf-8')
+
+for file in uFN:
+    cellData = cellNumRaw[cellNumRaw['Name']==file]
+    cellNum = float(cellData['CellNumber'])
+
+    file1 = filepath+file+'.m8'    
+    rawData = pd.read_csv(file1,sep='\t',engine='python',
+                           header=None, encoding='utf-8')
+       
+    refData = rawData[rawData[2]>=idendityTH]
+    refData = refData[refData[3]>= hitLengthTH]
+    
+    value_c = refData[1].value_counts()
+    
+    columnN=['gene name','relative abundance','gene description']
+    finalTable = pd.DataFrame(columns = columnN)
+    
+    for i in value_c.index:        
+        for j in range(len(genTable)):            
+            if i in genTable[j][0]:
+                Rabdc = value_c.loc[i]*readLength/genTable[j][1]/cellNum
+                idx = j      
+        finalTable = finalTable.append(pd.DataFrame(columns = columnN,
+                                                    data = [[i,Rabdc,genTable[idx][0]]]))
+
+    finalTable.to_csv('Unique/results/Plasmids/'+file+'.csv',index = None)
+
+Python script used for the normalization and pivot creation of integrons annotations.
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Oct 27 23:21:49 2020
+
+@author: Pu Li
+"""
+
+import pandas as pd
+import os  
+
+
+def file_name(file_dir):   
+    aL=[]   
+    for root, dirs, files in os.walk(file_dir): 
+        for file in files:  
+            if os.path.splitext(file)[1] == '.m8':
+                fn = os.path.splitext(file)[0]
+                aL.append(fn)  
+    return aL  
+
+def databaseRearange(database):
+    aL = []
+    for i in range(len(database)):
+        if '>' in database[i]:
+           aL.append(i)
+    
+    aLL = []       
+    for j in range(len(aL)):
+        if j >= len(aL)-1:
+            sD = database[aL[j]+1:]
+        else:
+            sD = database[aL[j]+1:aL[j+1]]
+        n = 0
+        for k in sD:
+            n = n + len(k) - 1
+        dis = database[aL[j]]
+        gLen = n
+        aLL.append([dis,gLen])
+        
+    return aLL
+
+filepath = 'Unique/Integrons/'
+fileNames = file_name(filepath)
+
+uFN = list(set(fileNames))
+
+idendityTH = 90
+
+hitLengthTH = 75
+
+readLength = 150
+
+f=open('reference_database/Integron.fasta')
+database = f.readlines()
+f.close()
+
+genTable = databaseRearange(database) 
+
+cellNumRaw = pd.read_csv('cell_number.txt',sep='\t',engine='python',
+                           header=0, encoding='utf-8')
+
+for file in uFN:
+    cellData = cellNumRaw[cellNumRaw['Name']==file]
+    cellNum = float(cellData['CellNumber'])
+
+    file1 = filepath+file+'.m8'    
+    rawData = pd.read_csv(file1,sep='\t',engine='python',
+                           header=None, encoding='utf-8')
+       
+    refData = rawData[rawData[2]>=idendityTH]
+    refData = refData[refData[3]>= hitLengthTH]
+    
+    value_c = refData[1].value_counts()
+    
+    columnN=['gene name','relative abundance','gene description']
+    finalTable = pd.DataFrame(columns = columnN)
+    
+    for i in value_c.index:        
+        for j in range(len(genTable)):            
+            if i in genTable[j][0]:
+                Rabdc = value_c.loc[i]*readLength/genTable[j][1]/cellNum
+                idx = j
+                
+        finalTable = finalTable.append(pd.DataFrame(columns = columnN,
+                                                    data = [[i,Rabdc,genTable[idx][0]]]))
+    
+    finalTable.to_csv('Unique/results/Integrons/'+file+'.csv',index = None)
+
